@@ -5,12 +5,20 @@ Routino project - http://routino.org/
 PHP ROUTINO extension install
 ------------------------------
 
+1) Install routino project
+
+2) Install phproutino
 ```bash 
 phpize
 ./configure
 make
-make install
+sudo make install
 ```
+3)
+Make local routino database using osm data. See http://routino.org/
+
+4)
+Using extension in php
 
 Example test.php
 ```php 
