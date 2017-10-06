@@ -35,4 +35,4 @@ $r->close();
 
 Attention:
 -----------------------
-Project is in early alpha stage.
+Project is in early alpha stage and support only php7
