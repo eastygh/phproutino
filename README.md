@@ -14,11 +14,9 @@ phpize
 make
 sudo make install
 ```
-3)
-Make local routino database using osm data. See http://routino.org/
+3) Make local routino database using osm data. See http://routino.org/
 
-4)
-Using extension in php
+4) Using extension in php
 
 Example test.php
 ```php 
