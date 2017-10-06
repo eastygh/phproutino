@@ -19,7 +19,7 @@ sudo make install
 
 4) Enable phproutino extension.
 
-For debian for example
+For debian example:
 ```bash 
 phpenmod routino
 ```
