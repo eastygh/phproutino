@@ -34,19 +34,26 @@ extern zend_module_entry routino_module_entry;
 #	define PHP_ROUTINO_API
 #endif
 
+
+// default files
+#ifdef PHP_WIN32
+#	define PHP_ROUTINO_TRANSLATES_FILE "c:/Program Files/Routino/xml/translations.xml"
+#	define PHP_ROUTINO_PROFILES_FILE "c:/Program Files/Routino/xml/profiles.xml"
+#else
+#	define PHP_ROUTINO_TRANSLATES_FILE "/usr/local/share/routino/translations.xml"
+#	define PHP_ROUTINO_PROFILES_FILE "/usr/local/share/routino/profiles.xml"
+#endif
+
 #ifdef ZTS
 #include "TSRM.h"
 #endif
 
-/*
-  	Declare any global variables you may need between the BEGIN
-	and END macros here:
+
+zend_class_entry *php_routino_ce;
 
 ZEND_BEGIN_MODULE_GLOBALS(routino)
-	zend_long  global_value;
-	char *global_string;
+  
 ZEND_END_MODULE_GLOBALS(routino)
-*/
 
 /* Always refer to the globals in your function as ROUTINO_G(variable).
    You are encouraged to rename these macros something shorter, see
@@ -59,13 +66,3 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #endif
 
 #endif	/* PHP_ROUTINO_H */
-
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */

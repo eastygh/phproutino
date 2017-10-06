@@ -25,8 +25,10 @@
 
 /* Structure for Routino object. */
 typedef struct _php_routino_object  {
-	int initialised;
+    int initialised;
+    int dbloaded;
     Routino_Database *db;
+    Routino_UserProfile *uprof;
     zend_bool exception;  
     zend_llist free_list;
     zend_object zo;
