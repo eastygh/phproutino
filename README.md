@@ -10,6 +10,7 @@ PHP ROUTINO extension install
 
 2) Install phproutino
 ```bash 
+sudo apt-get install php-dev 
 phpize
 ./configure
 make
