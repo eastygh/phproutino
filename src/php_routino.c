@@ -94,12 +94,21 @@ static void php_routino_init_globals(zend_routino_globals *routino_globals)
 /* Handlers */
 static zend_object_handlers routino_object_handlers;
 
-static void char_to_zval_array(char *name,char *val,zval *zval){
-	if (val)
+static void char_to_zval_array(char *name, char *val, zval *zval){
+	if (val) {
 		add_assoc_string(zval,name,val);
-	else
+	} else {
 		add_assoc_string(zval,name,"");
+	}
 }
+
+//static void load_database(const *char dir,const *char preifx){
+//	// do i need thread safe? make TODO
+//}
+
+//static void unload_database(){
+//	// do i need thread safe? make TODO
+//}
 
 // Routino object
 // Routino::Open(dir,prefix);
