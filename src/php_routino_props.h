@@ -13,5 +13,7 @@ extern PHP_METHOD(Routino, getlng);
 // get current profile
 extern PHP_METHOD(Routino, getprofile);
 
+// get current profile
+extern PHP_METHOD(Routino, getlasterror);
 
 #endif

@@ -102,6 +102,10 @@ static void char_to_zval_array(char *name, char *val, zval *zval){
 	}
 }
 
+static void set_last_routino_error( zval *object, long errn){
+	zend_update_property_long(php_routino_ce, object, "lasterrorno", sizeof("lasterrorno") - 1, errn TSRMLS_CC);
+}
+
 //static void load_database(const *char dir,const *char preifx){
 //	// do i need thread safe? make TODO
 //}
@@ -124,6 +128,8 @@ PHP_METHOD(Routino, open) {
 	zval *object = getThis();
 	r_obj = Z_ROUTINO_P(object);
 
+	set_last_routino_error(object, ROUTINO_ERROR_NO_DATABASE);
+	
 	if (r_obj->initialised==0){
 		// set default properties value
 		zend_update_property_string(php_routino_ce, object, "lng", sizeof("lng") - 1, "en" TSRMLS_CC); // by default we using English translation
@@ -137,6 +143,7 @@ PHP_METHOD(Routino, open) {
 
 	if (r_obj->dbloaded==1 && r_obj->db){
 		Routino_UnloadDatabase(r_obj->db);
+		set_last_routino_error(object, Routino_errno);
 		r_obj->db=NULL;
 		r_obj->dbloaded = 0;
 	}
@@ -147,6 +154,7 @@ PHP_METHOD(Routino, open) {
 	r_obj->initialised=1;	
 
 	r_obj->db=Routino_LoadDatabase(dir,prefix);
+	set_last_routino_error(object, Routino_errno);	
 	if (r_obj->db==NULL || Routino_errno!=ROUTINO_ERROR_NONE){
 		r_obj->dbloaded = 0;
 		RETURN_FALSE;
@@ -193,9 +201,6 @@ PHP_METHOD(Routino, calculate) {
 	Routino_Translation *rt;
 	Routino_Profile *prof;
 	
-
-
-
 	r_obj = Z_ROUTINO_P(object);
 	if (!r_obj || r_obj->initialised==0 || !r_obj->dbloaded){
 		zend_throw_exception(zend_ce_exception, "Object not initialised or DB not opened", 0);
@@ -341,7 +346,7 @@ PHP_METHOD(Routino, getlanguagesex) {
 	else RETURN_FALSE;
 }
 
-// Array Routino::getProfiles();
+// Array Routino->getProfiles();
 PHP_METHOD(Routino, getprofiles) {
 	array_init(return_value);
 	char **profs=NULL;
@@ -353,6 +358,17 @@ PHP_METHOD(Routino, getprofiles) {
 			c++;
 		}
 	else RETURN_FALSE;
+}
+
+
+// Array Routino::setLngFile($lngfile);  set language file
+PHP_METHOD(Routino, setlngfile) {
+	php_printf("Static method called \n");
+}
+
+// Array Routino::setLngFile($lngfile);  set language file
+PHP_METHOD(Routino, setlasterror) {
+	php_printf("Called protected method \n");
 }
 
 
@@ -377,11 +393,18 @@ static const zend_function_entry routino_methods[] = {
 	/* Aliases */
 	PHP_MALIAS(Routino,	__construct, open, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 
+	/*  Static methods  */
+	PHP_ME(Routino, setlngfile, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // return array of string
+
+	/* Protected */
+	PHP_ME(Routino, setlasterror, NULL, ZEND_ACC_PROTECTED) // setLastError property
+
 	// properties
 	PHP_ME(Routino, getdir, arginfo_void, ZEND_ACC_PUBLIC)
 	PHP_ME(Routino, getprefix, arginfo_void, ZEND_ACC_PUBLIC)
 	PHP_ME(Routino, getlng, arginfo_void, ZEND_ACC_PUBLIC)
-	PHP_ME(Routino, getprofile, arginfo_void, ZEND_ACC_PUBLIC)		
+	PHP_ME(Routino, getprofile, arginfo_void, ZEND_ACC_PUBLIC)
+	PHP_ME(Routino, getlasterror, arginfo_void, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 /* }}} */
@@ -456,11 +479,15 @@ static void php_routino_object_free_storage(zend_object *object) /* {{{ */
 	}
 /* }}} */
 
+static void register_constants (int module_number){
+
+}
+
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(routino)
 {
-
+	php_printf("entry %d \n",routino_module_entry.module_number);
 	zend_class_entry ce;
 	// standart handlers for object
 	memcpy(&routino_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
@@ -473,6 +500,9 @@ PHP_MINIT_FUNCTION(routino)
 	routino_object_handlers.free_obj = php_routino_object_free_storage; // my own function for free storage
 	php_routino_ce = zend_register_internal_class(&ce);	
 
+#include "php_routino_constants.h"
+
+
 	// load routino profiles and languages from standart files
 	Routino_ParseXMLProfiles(PHP_ROUTINO_PROFILES_FILE);
 	Routino_ParseXMLTranslations(PHP_ROUTINO_TRANSLATES_FILE);
@@ -481,6 +511,8 @@ PHP_MINIT_FUNCTION(routino)
 	return SUCCESS;
 }
 /* }}} */
+
+
 
 
 /* {{{ PHP_MSHUTDOWN_FUNCTION
@@ -526,7 +558,6 @@ PHP_MINFO_FUNCTION(routino)
 	php_info_print_table_start();
 	php_info_print_table_header(2, "Routino support", "enabled");
 	php_info_print_table_end();
-
 	/* Remove comments if you have entries in php.ini
 	DISPLAY_INI_ENTRIES();
 	*/

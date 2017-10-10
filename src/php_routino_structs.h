@@ -40,4 +40,7 @@ static inline php_routino_object *php_routino_from_object(zend_object *obj) {
 
 #define Z_ROUTINO_P(zv)  php_routino_from_object(Z_OBJ_P((zv)))
 
+// Helpers to call class methods from C
+
+
 #endif

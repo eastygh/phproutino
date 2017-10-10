@@ -67,3 +67,14 @@ PHP_METHOD(Routino, setprofile) {
 	zval *object = getThis();
    
 }
+
+
+// get current profile
+PHP_METHOD(Routino, getlasterror) {
+    zval *prop_value,rv;
+	zval *object = getThis();
+
+    prop_value = zend_read_property(php_routino_ce, object, "lasterrorno", sizeof("lasterrorno") - 1,0,&rv);
+    
+    RETURN_ZVAL(prop_value, 1, 0);    
+}
