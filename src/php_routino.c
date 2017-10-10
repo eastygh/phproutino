@@ -167,17 +167,17 @@ PHP_METHOD(Routino, open) {
 PHP_METHOD(Routino, close) {
 	php_routino_object *r_obj;
 	zval *object = getThis();
-
+	set_last_routino_error(object, ROUTINO_ERROR_NONE);
 	r_obj = Z_ROUTINO_P(object);
 	if (!r_obj || r_obj->initialised==0  || r_obj->dbloaded==0)	{
 		RETURN_TRUE;
 	}
 	if (r_obj->dbloaded==1 && r_obj->db) {
 		Routino_UnloadDatabase(r_obj->db);
+		set_last_routino_error(object, Routino_errno);
 		r_obj->db=NULL;
 		r_obj->dbloaded = 0;
 	}
-	php_printf("closed\n");		
 	RETURN_TRUE;
 }
 
@@ -201,6 +201,7 @@ PHP_METHOD(Routino, calculate) {
 	Routino_Translation *rt;
 	Routino_Profile *prof;
 	
+	set_last_routino_error(object, ROUTINO_ERROR_NO_DATABASE);
 	r_obj = Z_ROUTINO_P(object);
 	if (!r_obj || r_obj->initialised==0 || !r_obj->dbloaded){
 		zend_throw_exception(zend_ce_exception, "Object not initialised or DB not opened", 0);
@@ -217,6 +218,7 @@ PHP_METHOD(Routino, calculate) {
 		convert_to_string(prop_value);
 		prof=Routino_GetProfile(Z_STRVAL_P(prop_value));
 		Routino_ValidateProfile(r_obj->db,prof);
+		set_last_routino_error(object, Routino_errno);
 		if (!prof || Routino_errno!=ROUTINO_ERROR_NONE){
 			zend_throw_exception(zend_ce_exception, "Invalid transport profile", 0);
 			return;		
@@ -229,6 +231,7 @@ PHP_METHOD(Routino, calculate) {
 	if (Z_TYPE_P(prop_value) == IS_STRING){
 		convert_to_string(prop_value);
 		rt=Routino_GetTranslation(Z_STRVAL_P(prop_value));
+		set_last_routino_error(object, Routino_errno);
 		if (!rt || Routino_errno!=ROUTINO_ERROR_NONE){
 			zend_throw_exception(zend_ce_exception, "Invalid translations sets", 0);
 			return;
@@ -259,7 +262,6 @@ PHP_METHOD(Routino, calculate) {
 					wps[i]=wp;
 					i++;
 				}
-				php_printf("lat lon found %f %f \n",latd,lond);
 			}
 		}
 	ZEND_HASH_FOREACH_END();
@@ -267,6 +269,7 @@ PHP_METHOD(Routino, calculate) {
 	if (i>1){
 		// we have valid waypoints to calcuate route
 		route=Routino_CalculateRoute(r_obj->db,prof,rt,wps,i,ROUTINO_ROUTE_SHORTEST | ROUTINO_ROUTE_LIST_TEXT_ALL,NULL);
+		set_last_routino_error(object, Routino_errno);
 		wp_count2=0;
 		if (route!=NULL && Routino_errno==ROUTINO_ERROR_NONE){
 			array_init(return_value); // lets form return  array
@@ -487,7 +490,6 @@ static void register_constants (int module_number){
  */
 PHP_MINIT_FUNCTION(routino)
 {
-	php_printf("entry %d \n",routino_module_entry.module_number);
 	zend_class_entry ce;
 	// standart handlers for object
 	memcpy(&routino_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
