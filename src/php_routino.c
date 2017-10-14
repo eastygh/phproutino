@@ -65,7 +65,8 @@ PHP_FUNCTION(confirm_routino_compiled)
 	char *arg = NULL;
 	size_t arg_len, len;
 	zend_string *strg;
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &arg, &arg_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &arg, &arg_len) == FAILURE)
+	{
 		return;
 	}
 	strg = strpprintf(0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "routino", arg);
@@ -79,7 +80,6 @@ PHP_FUNCTION(confirm_routino_compiled)
    follow this convention for the convenience of others editing your code.
 */
 
-
 /* {{{ php_routino_init_globals
  */
 /* Uncomment this function if you have INI entries
@@ -91,21 +91,64 @@ static void php_routino_init_globals(zend_routino_globals *routino_globals)
 */
 /* }}} */
 
+ZEND_DECLARE_MODULE_GLOBALS(routino)
+
 /* Handlers */
 static zend_object_handlers routino_object_handlers;
 
-static void char_to_zval_array(char *name, char *val, zval *zval){
-	if (val) {
-		add_assoc_string(zval,name,val);
-	} else {
-		add_assoc_string(zval,name,"");
+static void char_to_zval_array(char *name, char *val, zval *zval)
+{
+	if (val)
+	{
+		add_assoc_string(zval, name, val);
+	}
+	else
+	{
+		add_assoc_string(zval, name, "");
 	}
 }
 
-static void set_last_routino_error( zval *object, long errn){
+static void set_last_routino_error(zval *object, long errn)
+{
 	zend_update_property_long(php_routino_ce, object, "lasterrorno", sizeof("lasterrorno") - 1, errn TSRMLS_CC);
 }
 
+static void load_metadata()
+{
+	if (!ROUTINO_G(pfloaded))
+	{
+		php_printf("Try load profile %s\n", ROUTINO_G(pfname));
+		if (Routino_ParseXMLProfiles(ROUTINO_G(pfname)) == ROUTINO_ERROR_NONE)
+		{
+			ROUTINO_G(pfloaded) = 1;
+		}
+	}
+	if (!ROUTINO_G(lngloaded))
+	{
+		if (Routino_ParseXMLTranslations(ROUTINO_G(lngfname)) == ROUTINO_ERROR_NONE)
+		{
+			ROUTINO_G(lngloaded) = 1;
+		}
+	}
+}
+
+static void unload_metadata()
+{
+	Routino_FreeXMLTranslations();
+	Routino_FreeXMLProfiles();
+	ROUTINO_G(pfloaded) = 0;
+	ROUTINO_G(lngloaded) = 0;
+}
+
+int exists_file(const char *filename)
+{
+	struct stat buf;
+
+	if (stat(filename, &buf))
+		return (0);
+	else
+		return (1);
+}
 //static void load_database(const *char dir,const *char preifx){
 //	// do i need thread safe? make TODO
 //}
@@ -118,44 +161,48 @@ static void set_last_routino_error( zval *object, long errn){
 // Routino::Open(dir,prefix);
 // dir - databasedirectory
 // prefix - prefix of data files
-PHP_METHOD(Routino, open) {
+PHP_METHOD(Routino, open)
+{
 	// two arguments dir and prefix
 	char *dir = NULL;
 	char *prefix = NULL;
-	size_t dir_len,pfx_len;
+	size_t dir_len, pfx_len;
 	php_routino_object *r_obj;
 
 	zval *object = getThis();
 	r_obj = Z_ROUTINO_P(object);
 
 	set_last_routino_error(object, ROUTINO_ERROR_NO_DATABASE);
-	
-	if (r_obj->initialised==0){
+
+	if (r_obj->initialised == 0)
+	{
 		// set default properties value
-		zend_update_property_string(php_routino_ce, object, "lng", sizeof("lng") - 1, "en" TSRMLS_CC); // by default we using English translation
+		zend_update_property_string(php_routino_ce, object, "lng", sizeof("lng") - 1, "en" TSRMLS_CC);				 // by default we using English translation
 		zend_update_property_string(php_routino_ce, object, "profile", sizeof("profile") - 1, "motorcar" TSRMLS_CC); // we trip on car by default))
 	}
 
-
-    if (FAILURE == zend_parse_parameters_throw(ZEND_NUM_ARGS(), "s|s", &dir, &dir_len,&prefix,&pfx_len)) {
-        return;
+	if (FAILURE == zend_parse_parameters_throw(ZEND_NUM_ARGS(), "s|s", &dir, &dir_len, &prefix, &pfx_len))
+	{
+		return;
 	}
 
-	if (r_obj->dbloaded==1 && r_obj->db){
+	if (r_obj->dbloaded == 1 && r_obj->db)
+	{
 		Routino_UnloadDatabase(r_obj->db);
 		set_last_routino_error(object, Routino_errno);
-		r_obj->db=NULL;
+		r_obj->db = NULL;
 		r_obj->dbloaded = 0;
 	}
 
 	// update properties
 	zend_update_property_string(php_routino_ce, object, "dir", sizeof("dir") - 1, dir TSRMLS_CC);
 	zend_update_property_string(php_routino_ce, object, "prefix", sizeof("prefix") - 1, prefix TSRMLS_CC);
-	r_obj->initialised=1;	
+	r_obj->initialised = 1;
 
-	r_obj->db=Routino_LoadDatabase(dir,prefix);
-	set_last_routino_error(object, Routino_errno);	
-	if (r_obj->db==NULL || Routino_errno!=ROUTINO_ERROR_NONE){
+	r_obj->db = Routino_LoadDatabase(dir, prefix);
+	set_last_routino_error(object, Routino_errno);
+	if (r_obj->db == NULL || Routino_errno != ROUTINO_ERROR_NONE)
+	{
 		r_obj->dbloaded = 0;
 		RETURN_FALSE;
 	}
@@ -164,25 +211,29 @@ PHP_METHOD(Routino, open) {
 }
 
 // Routino::Close();
-PHP_METHOD(Routino, close) {
+PHP_METHOD(Routino, close)
+{
 	php_routino_object *r_obj;
 	zval *object = getThis();
 	set_last_routino_error(object, ROUTINO_ERROR_NONE);
 	r_obj = Z_ROUTINO_P(object);
-	if (!r_obj || r_obj->initialised==0  || r_obj->dbloaded==0)	{
+	if (!r_obj || r_obj->initialised == 0 || r_obj->dbloaded == 0)
+	{
 		RETURN_TRUE;
 	}
-	if (r_obj->dbloaded==1 && r_obj->db) {
+	if (r_obj->dbloaded == 1 && r_obj->db)
+	{
 		Routino_UnloadDatabase(r_obj->db);
 		set_last_routino_error(object, Routino_errno);
-		r_obj->db=NULL;
+		r_obj->db = NULL;
 		r_obj->dbloaded = 0;
 	}
 	RETURN_TRUE;
 }
 
 // Routino::Calculate(Array $waypoints);
-PHP_METHOD(Routino, calculate) {
+PHP_METHOD(Routino, calculate)
+{
 	php_routino_object *r_obj;
 	zval *object = getThis();
 	Routino_Waypoint **wps;
@@ -191,213 +242,304 @@ PHP_METHOD(Routino, calculate) {
 	Routino_Output *route_first;
 	HashTable *waypoints;
 	zval *data;
-	zval *lat,*lon;
-	zval lat1,lon1;
-	zend_string *key1,*key2;
-	int wp_count,i,wp_count2;
-	float distance=0,tm=0;
-	zval *prop_value,rarray,onepoint,rv;
+	zval *lat, *lon;
+	zval lat1, lon1;
+	zend_string *key1, *key2;
+	int wp_count, i, wp_count2, reti;
+	float distance = 0, tm = 0;
+	zval *prop_value, rarray, onepoint, rv;
 	// external
 	Routino_Translation *rt;
 	Routino_Profile *prof;
-	
+
 	set_last_routino_error(object, ROUTINO_ERROR_NO_DATABASE);
 	r_obj = Z_ROUTINO_P(object);
-	if (!r_obj || r_obj->initialised==0 || !r_obj->dbloaded){
+	if (!r_obj || r_obj->initialised == 0 || !r_obj->dbloaded)
+	{
 		zend_throw_exception(zend_ce_exception, "Object not initialised or DB not opened", 0);
 		return;
 	}
 
-	if (FAILURE == zend_parse_parameters_throw(ZEND_NUM_ARGS(), "h", &waypoints) 
-		|| 0==(wp_count=zend_hash_num_elements(waypoints)))
+	// check profile and translations
+	php_printf("Profile to load %s\n",ROUTINO_G(pfname));
+	load_metadata();
+	if (!ROUTINO_G(pfloaded) || !ROUTINO_G(lngloaded))
+	{
+		set_last_routino_error(object, !ROUTINO_G(pfloaded) ? ROUTINO_ERROR_NO_PROFILES_XML : ROUTINO_ERROR_NO_TRANSLATIONS_XML);
 		return;
+	}
+
+	if (FAILURE == zend_parse_parameters_throw(ZEND_NUM_ARGS(), "h", &waypoints) || 0 == (wp_count = zend_hash_num_elements(waypoints)))
+	{
+		return;
+	}
 
 	// load and convert profile
-	prop_value = zend_read_property(php_routino_ce, object, "profile", sizeof("profile") - 1,0,&rv);
-	if (Z_TYPE_P(prop_value) == IS_STRING){
+	prop_value = zend_read_property(php_routino_ce, object, "profile", sizeof("profile") - 1, 0, &rv);
+	if (Z_TYPE_P(prop_value) == IS_STRING)
+	{
 		convert_to_string(prop_value);
-		prof=Routino_GetProfile(Z_STRVAL_P(prop_value));
-		Routino_ValidateProfile(r_obj->db,prof);
+		prof = Routino_GetProfile(Z_STRVAL_P(prop_value));
+		Routino_ValidateProfile(r_obj->db, prof);
 		set_last_routino_error(object, Routino_errno);
-		if (!prof || Routino_errno!=ROUTINO_ERROR_NONE){
+		if (!prof || Routino_errno != ROUTINO_ERROR_NONE)
+		{
 			zend_throw_exception(zend_ce_exception, "Invalid transport profile", 0);
-			return;		
-		}		
-	} else {
+			return;
+		}
+	}
+	else
+	{
 		zend_throw_exception(zend_ce_exception, "Invalid profile value", 0);
 	}
 	// load and convert transalation
-	prop_value = zend_read_property(php_routino_ce, object, "lng", sizeof("lng") - 1,0,&rv);
-	if (Z_TYPE_P(prop_value) == IS_STRING){
+	prop_value = zend_read_property(php_routino_ce, object, "lng", sizeof("lng") - 1, 0, &rv);
+	if (Z_TYPE_P(prop_value) == IS_STRING)
+	{
 		convert_to_string(prop_value);
-		rt=Routino_GetTranslation(Z_STRVAL_P(prop_value));
+		rt = Routino_GetTranslation(Z_STRVAL_P(prop_value));
 		set_last_routino_error(object, Routino_errno);
-		if (!rt || Routino_errno!=ROUTINO_ERROR_NONE){
+		if (!rt || Routino_errno != ROUTINO_ERROR_NONE)
+		{
 			zend_throw_exception(zend_ce_exception, "Invalid translations sets", 0);
 			return;
-		}		
-	} else {
+		}
+	}
+	else
+	{
 		zend_throw_exception(zend_ce_exception, "Invalid translations sets", 0);
 	}
 	key1 = zend_string_init("lat", strlen("lat"), 0);
 	key2 = zend_string_init("lon", strlen("lon"), 0);
 	// foreach array and prepare waypoints to calculate route
-	wps=ecalloc(1,sizeof(char *)*wp_count);
+	wps = ecalloc(1, sizeof(char *) * wp_count);
 	for (i = 0; i < wp_count; i++) // nullable ptrs array
 		wps[i] = NULL;
-	i=0;
+	i = 0;
 	ZEND_HASH_FOREACH_VAL(waypoints, data)
-		if (Z_TYPE_P(data) == IS_ARRAY){
-			if ((lat=zend_hash_find(Z_ARRVAL_P(data),key1)) && (lon=zend_hash_find(Z_ARRVAL_P(data),key2))) {
-				//convert_to_double(lat);
-				ZVAL_COPY_VALUE(&lon1, lon);
-				convert_to_double(&lon1);
-				ZVAL_COPY_VALUE(&lat1, lat);
-				convert_to_double(&lat1);
-				double lond=Z_DVAL(lon1);
-				double latd=Z_DVAL(lat1);
-				wp=Routino_FindWaypoint(r_obj->db,prof,latd,lond);
-				if (wp!=NULL){
-					// add vlalid waypoint
-					wps[i]=wp;
-					i++;
-				}
+	if (Z_TYPE_P(data) == IS_ARRAY)
+	{
+		if ((lat = zend_hash_find(Z_ARRVAL_P(data), key1)) && (lon = zend_hash_find(Z_ARRVAL_P(data), key2)))
+		{
+			//convert_to_double(lat);
+			ZVAL_COPY_VALUE(&lon1, lon);
+			convert_to_double(&lon1);
+			ZVAL_COPY_VALUE(&lat1, lat);
+			convert_to_double(&lat1);
+			double lond = Z_DVAL(lon1);
+			double latd = Z_DVAL(lat1);
+			wp = Routino_FindWaypoint(r_obj->db, prof, latd, lond);
+			if (wp != NULL)
+			{
+				// add vlalid waypoint
+				wps[i] = wp;
+				i++;
 			}
 		}
+	}
 	ZEND_HASH_FOREACH_END();
-	
-	if (i>1){
+
+	if (i > 1)
+	{
 		// we have valid waypoints to calcuate route
-		route=Routino_CalculateRoute(r_obj->db,prof,rt,wps,i,ROUTINO_ROUTE_SHORTEST | ROUTINO_ROUTE_LIST_TEXT_ALL,NULL);
+		route = Routino_CalculateRoute(r_obj->db, prof, rt, wps, i, ROUTINO_ROUTE_SHORTEST | ROUTINO_ROUTE_LIST_TEXT_ALL, NULL);
 		set_last_routino_error(object, Routino_errno);
-		wp_count2=0;
-		if (route!=NULL && Routino_errno==ROUTINO_ERROR_NONE){
+		wp_count2 = 0;
+		if (route != NULL && Routino_errno == ROUTINO_ERROR_NONE)
+		{
 			array_init(return_value); // lets form return  array
 			array_init(&rarray);
-			route_first=route;
-			while(route!=NULL){
+			route_first = route;
+			while (route != NULL)
+			{
 				array_init(&onepoint);
 				// fill one point of route
-				add_assoc_double(&onepoint,"lat",radians_to_degrees(route->lat));
-				add_assoc_double(&onepoint,"lon",radians_to_degrees(route->lon));
-				add_assoc_double(&onepoint,"latr",route->lat);
-				add_assoc_double(&onepoint,"lonr",route->lon);
-				add_assoc_double(&onepoint,"dist",route->dist);
-				add_assoc_double(&onepoint,"time",route->time);
-				add_assoc_double(&onepoint,"speed",route->speed);
-				char_to_zval_array("name",route->name,&onepoint);
-				char_to_zval_array("desc1",route->desc1,&onepoint);
-				char_to_zval_array("desc2",route->desc2,&onepoint);
-				char_to_zval_array("desc3",route->desc3,&onepoint);
-				distance=route->dist;
-				tm=route->time;
-				route=route->next;
+				add_assoc_double(&onepoint, "lat", radians_to_degrees(route->lat));
+				add_assoc_double(&onepoint, "lon", radians_to_degrees(route->lon));
+				add_assoc_double(&onepoint, "latr", route->lat);
+				add_assoc_double(&onepoint, "lonr", route->lon);
+				add_assoc_double(&onepoint, "dist", route->dist);
+				add_assoc_double(&onepoint, "time", route->time);
+				add_assoc_double(&onepoint, "speed", route->speed);
+				char_to_zval_array("name", route->name, &onepoint);
+				char_to_zval_array("desc1", route->desc1, &onepoint);
+				char_to_zval_array("desc2", route->desc2, &onepoint);
+				char_to_zval_array("desc3", route->desc3, &onepoint);
+				distance = route->dist;
+				tm = route->time;
+				route = route->next;
 				wp_count2++;
 				// link one point into route data array
-				add_next_index_zval(&rarray,&onepoint);
+				add_next_index_zval(&rarray, &onepoint);
 			}
 			add_assoc_zval(return_value, "route", &rarray);
-			add_assoc_double(return_value,"distance",distance);
-			add_assoc_double(return_value,"time",tm);
-			add_assoc_long(return_value,"waypoints",wp_count2);
-			// free allocated storages		
+			add_assoc_double(return_value, "distance", distance);
+			add_assoc_double(return_value, "time", tm);
+			add_assoc_long(return_value, "waypoints", wp_count2);
+			// free allocated storages
 			Routino_DeleteRoute(route_first);
-		} else {
-
+		}
+		else
+		{
 		}
 	}
 
 	// free allocated storages
-	i=0;
-	while (wps[i]!=NULL && i<wp_count){
+	i = 0;
+	while (wps[i] != NULL && i < wp_count)
+	{
 		free(wps[i]);
 		i++;
 	}
 	efree(wps); // free waypoints array mem
 	zend_string_release(key1);
 	zend_string_release(key2);
-
 }
 
 // Array Routino::getLanguages();
-PHP_METHOD(Routino, getlanguages) {
+PHP_METHOD(Routino, getlanguages)
+{
 	array_init(return_value);
-	char **lng=NULL;
-	int	c=0;
-	lng=Routino_GetTranslationLanguages();
+	char **lng = NULL;
+	int c = 0;
+	lng = Routino_GetTranslationLanguages();
 	if (lng)
-		while(lng[c]){
-			add_next_index_string(return_value,lng[c]);
+		while (lng[c])
+		{
+			add_next_index_string(return_value, lng[c]);
 			c++;
 		}
-	else RETURN_FALSE;
+	else
+		RETURN_FALSE;
 }
 
 // Array Routino::getLanguagesEx(); // array lng=>full_lng_name
-PHP_METHOD(Routino, getlanguagesex) {
+PHP_METHOD(Routino, getlanguagesex)
+{
 	array_init(return_value);
-	char **lng=NULL;
-	char **flng=NULL;
-	int	c=0;
-	lng=Routino_GetTranslationLanguages();
-	flng=Routino_GetTranslationLanguageFullNames();
+	char **lng = NULL;
+	char **flng = NULL;
+	int c = 0;
+	lng = Routino_GetTranslationLanguages();
+	flng = Routino_GetTranslationLanguageFullNames();
 	if (lng)
-		while(lng[c]){
-			add_assoc_string(return_value,lng[c],flng[c]);
+		while (lng[c])
+		{
+			add_assoc_string(return_value, lng[c], flng[c]);
 			c++;
 		}
-	else RETURN_FALSE;
+	else
+		RETURN_FALSE;
 }
 
 // Array Routino->getProfiles();
-PHP_METHOD(Routino, getprofiles) {
+PHP_METHOD(Routino, getprofiles)
+{
 	array_init(return_value);
-	char **profs=NULL;
-	int	c=0;
-	profs=Routino_GetProfileNames();
-	if (profs)
-		while(profs[c]){
-			add_next_index_string(return_value,profs[c]);
+	char **profs = NULL;
+	int c = 0;
+	profs = Routino_GetProfileNames();
+	if (profs){
+		while (profs[c])
+		{
+			add_next_index_string(return_value, profs[c]);
 			c++;
 		}
-	else RETURN_FALSE;
+	} else {
+		RETURN_FALSE;
+	}
 }
 
+// Array Routino::setLngFile($lngfile);  set language filename
+PHP_METHOD(Routino, setlngfname)
+{
+	char *arg, *nval = NULL;
+	size_t arg_len;
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &arg, &arg_len) == FAILURE)
+	{
+		RETURN_FALSE;
+	}
+	if (arg_len == 0)
+	{
+		RETURN_FALSE;
+	}
+	// check if file exist
+	if (exists_file(arg))
+	{
+		Routino_FreeXMLTranslations();
+		ROUTINO_G(lngloaded) = 0;
+		if (ROUTINO_G(lngfname))
+		{
+			efree(ROUTINO_G(lngfname));
+		}
+		nval = ecalloc(1, strlen(arg) + 1);
+		memcpy(nval, arg, strlen(arg));
+		ROUTINO_G(lngfname) = nval;
+		RETURN_TRUE;
+	}
+	RETURN_FALSE;
+}
+
+// Routino::setProfilesFName($profilefn);  set profiles filename
+PHP_METHOD(Routino, setprofilesfname)
+{
+	char *arg, *nval = NULL;
+	size_t arg_len;
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &arg, &arg_len) == FAILURE)
+	{
+		RETURN_FALSE;
+	}
+	if (arg_len == 0)
+	{
+		RETURN_FALSE;
+	}
+	// check if file exist
+	if (exists_file(arg))
+	{
+		Routino_FreeXMLProfiles();
+		ROUTINO_G(pfloaded) = 0;	
+		if (ROUTINO_G(pfname))
+		{
+			efree(ROUTINO_G(pfname));
+		}
+		nval = ecalloc(1, strlen(arg) + 1);
+		memcpy(nval, arg, strlen(arg));
+		ROUTINO_G(pfname) = nval;
+		RETURN_TRUE;
+	}
+	RETURN_FALSE;
+}
 
 // Array Routino::setLngFile($lngfile);  set language file
-PHP_METHOD(Routino, setlngfile) {
-	php_printf("Static method called \n");
+PHP_METHOD(Routino, setlasterror)
+{
+//	php_printf("Called protected method \n");
 }
-
-// Array Routino::setLngFile($lngfile);  set language file
-PHP_METHOD(Routino, setlasterror) {
-	php_printf("Called protected method \n");
-}
-
 
 /* {{{ routino_functions[]
  *
  * Every user visible function must have an entry in routino_functions[].
  */
- ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
- ZEND_END_ARG_INFO()
- 
- ZEND_BEGIN_ARG_INFO_EX(arginfo_set, 0, 0, 1)
-	 ZEND_ARG_INFO(0, value)
- ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_set, 0, 0, 1)
+ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
 
 static const zend_function_entry routino_methods[] = {
 	PHP_ME(Routino, open, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Routino, close, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Routino, calculate, NULL, ZEND_ACC_PUBLIC)
-	PHP_ME(Routino, getlanguages, NULL, ZEND_ACC_PUBLIC) // return array of string
-	PHP_ME(Routino, getlanguagesex, NULL, ZEND_ACC_PUBLIC) // return array of string
-	PHP_ME(Routino, getprofiles, NULL, ZEND_ACC_PUBLIC) // return array of string	
+	PHP_ME(Routino, getlanguages, NULL, ZEND_ACC_PUBLIC) 	// return array of string
+	PHP_ME(Routino, getlanguagesex, NULL, ZEND_ACC_PUBLIC)	// return array of string
+	PHP_ME(Routino, getprofiles, NULL, ZEND_ACC_PUBLIC)		// return array of string
 	/* Aliases */
-	PHP_MALIAS(Routino,	__construct, open, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_MALIAS(Routino, __construct, open, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
 
 	/*  Static methods  */
-	PHP_ME(Routino, setlngfile, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // return array of string
+	PHP_ME(Routino, setlngfname, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)	   // Set language xml filename
+	PHP_ME(Routino, setprofilesfname, NULL, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC) // Set transport profiles xml filename
 
 	/* Protected */
 	PHP_ME(Routino, setlasterror, NULL, ZEND_ACC_PROTECTED) // setLastError property
@@ -408,91 +550,67 @@ static const zend_function_entry routino_methods[] = {
 	PHP_ME(Routino, getlng, arginfo_void, ZEND_ACC_PUBLIC)
 	PHP_ME(Routino, getprofile, arginfo_void, ZEND_ACC_PUBLIC)
 	PHP_ME(Routino, getlasterror, arginfo_void, ZEND_ACC_PUBLIC)
-    PHP_FE_END
+	
+	PHP_FE_END
 };
 /* }}} */
 
-// set default to user profile
-void fill_dafult_user_profile(Routino_UserProfile *upf) /* {{{ */
-	{
-		if (!upf){
-			return;
-		}
-		upf->transport=Transport_Motorcar;
-		upf->oneway=1;
-		upf->turns=1;
-		upf->weight=1;
-		upf->height=1.5;
-		upf->width=1.2;
-		upf->length=2;
-		for(int i;i<14;i++){
-			upf->highway[i]=0;
-			upf->speed[i]=80;
-		}
-		for(int i;i<7;i++){
-			upf->props[i]=0;
-		}		
-	}
-/* }}} */
-
-void reset_routino_object(php_routino_object *object){
-	object->uprof=NULL;
-	object->db=NULL;
-	object->initialised=0;
-	object->dbloaded=0;
-}
 
 // allocate memory for Routino Object
 static zend_object *php_routino_object_new(zend_class_entry *class_type) /* {{{ */
-	{
-		php_routino_object *intern;
-		char **lng;
-	
-		/* Allocate memory for it */
-		intern = ecalloc(1, sizeof(php_routino_object) + zend_object_properties_size(class_type));
-		reset_routino_object(intern);
-		zend_object_std_init(&intern->zo, class_type); // init standart values for object
-		object_properties_init(&intern->zo, class_type);
-	
-		intern->zo.handlers = &routino_object_handlers;
-		intern->uprof=ecalloc(1, sizeof(Routino_UserProfile)); // profile memory allocated
-		fill_dafult_user_profile(intern->uprof);
+{
+	php_routino_object *intern;
+	char **lng;
 
-		return &intern->zo;
-	}
+	/* Allocate memory for it */
+	intern = ecalloc(1, sizeof(php_routino_object) + zend_object_properties_size(class_type));
+
+	zend_object_std_init(&intern->zo, class_type); // init standart values for object
+	object_properties_init(&intern->zo, class_type);
+
+	intern->zo.handlers = &routino_object_handlers;
+	intern->uprof = ecalloc(1, sizeof(Routino_UserProfile)); // profile memory allocated
+
+	return &intern->zo;
+}
 /* }}} */
 
 // free object
 static void php_routino_object_free_storage(zend_object *object) /* {{{ */
+{
+	php_routino_object *intern = php_routino_from_object(object);
+	if (!intern)
 	{
-		php_routino_object *intern = php_routino_from_object(object);
-		if (!intern) {
-			return;
-		}
-		if (intern->initialised && intern->db) {
-			Routino_UnloadDatabase(intern->db);
-			intern->db=NULL;
-			if (intern->uprof)
-				efree(intern->uprof);
-			intern->initialised = 0;
-			intern->dbloaded = 0;
-		}	
-		zend_object_std_dtor(&intern->zo);
-		efree(intern);
+		return;
 	}
-/* }}} */
-
-static void register_constants (int module_number){
-
+	if (intern->initialised && intern->db)
+	{
+		Routino_UnloadDatabase(intern->db);
+		intern->db = NULL;
+		if (intern->uprof)
+			efree(intern->uprof);
+		intern->initialised = 0;
+		intern->dbloaded = 0;
+	}
+	zend_object_std_dtor(&intern->zo);
+	efree(intern);
 }
+/* }}} */
 
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(routino)
 {
 	zend_class_entry ce;
+
 	// standart handlers for object
 	memcpy(&routino_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+
+	// Init global vars
+	ROUTINO_G(pfloaded) = 0;
+	ROUTINO_G(lngloaded) = 0;
+	ROUTINO_G(pfname) = NULL;
+	ROUTINO_G(lngfname) = NULL;
 
 	/* Register Routino Class */
 	INIT_CLASS_ENTRY(ce, "Routino", routino_methods);
@@ -500,22 +618,14 @@ PHP_MINIT_FUNCTION(routino)
 	routino_object_handlers.offset = XtOffsetOf(php_routino_object, zo);
 	routino_object_handlers.clone_obj = NULL;
 	routino_object_handlers.free_obj = php_routino_object_free_storage; // my own function for free storage
-	php_routino_ce = zend_register_internal_class(&ce);	
+	php_routino_ce = zend_register_internal_class(&ce);
 
 #include "php_routino_constants.h"
-
-
-	// load routino profiles and languages from standart files
-	Routino_ParseXMLProfiles(PHP_ROUTINO_PROFILES_FILE);
-	Routino_ParseXMLTranslations(PHP_ROUTINO_TRANSLATES_FILE);
 
 	//REGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
 /* }}} */
-
-
-
 
 /* {{{ PHP_MSHUTDOWN_FUNCTION
  */
@@ -525,9 +635,6 @@ PHP_MSHUTDOWN_FUNCTION(routino)
 	UNREGISTER_INI_ENTRIES();
 	*/
 
-	// unload some loaded data
-	Routino_FreeXMLProfiles;
-	Routino_FreeXMLTranslations;
 	return SUCCESS;
 }
 /* }}} */
@@ -540,6 +647,13 @@ PHP_RINIT_FUNCTION(routino)
 #if defined(COMPILE_DL_ROUTINO) && defined(ZTS)
 	ZEND_TSRMLS_CACHE_UPDATE();
 #endif
+
+	ROUTINO_G(lngfname) = ecalloc(1, strlen(PHP_ROUTINO_TRANSLATES_FILE) + 1);
+	memcpy(ROUTINO_G(lngfname), PHP_ROUTINO_TRANSLATES_FILE, strlen(PHP_ROUTINO_TRANSLATES_FILE));
+
+	ROUTINO_G(pfname) = ecalloc(1, strlen(PHP_ROUTINO_PROFILES_FILE)+1);
+	memcpy(ROUTINO_G(pfname), PHP_ROUTINO_PROFILES_FILE, strlen(PHP_ROUTINO_PROFILES_FILE));
+
 	return SUCCESS;
 }
 /* }}} */
@@ -549,6 +663,14 @@ PHP_RINIT_FUNCTION(routino)
  */
 PHP_RSHUTDOWN_FUNCTION(routino)
 {
+	// unload some loaded data
+	unload_metadata();
+	if (ROUTINO_G(pfname)){
+		efree(ROUTINO_G(pfname));
+	}
+	if (ROUTINO_G(lngfname)){
+		efree(ROUTINO_G(lngfname));
+	}
 	return SUCCESS;
 }
 /* }}} */
@@ -575,11 +697,10 @@ zend_module_entry routino_module_entry = {
 	PHP_MINIT(routino),
 	PHP_MSHUTDOWN(routino),
 	PHP_RINIT(routino),		/* Init module */
-	PHP_RSHUTDOWN(routino),	/* Shutdown module */
+	PHP_RSHUTDOWN(routino), /* Shutdown module */
 	PHP_MINFO(routino),
 	PHP_ROUTINO_VERSION,
-	STANDARD_MODULE_PROPERTIES
-};
+	STANDARD_MODULE_PROPERTIES};
 /* }}} */
 
 #ifdef COMPILE_DL_ROUTINO

@@ -15,6 +15,7 @@ function Test(){
     $cc[2]=['lat'=>61.0024578,'lon'=>69.0178842];
     $cc[3]=['lat'=>61.0100402,'lon'=>69.0568554];
     var_dump($r->Calculate($cc));
+    var_dump($r->getLastError());
 //    var_dump($r->Calculate([['lat'=>60.9761133,'lon'=>69.0239906],['lat'=>61.0024578,'lon'=>69.0178842]]));
 //    var_dump($r->Calculate([]));
     $r->Close();
@@ -23,7 +24,10 @@ function Test(){
 //Routino::setLngFile("QQQ");
 //echo routino_opendatabase("/home/easty/data/","khmao");
 echo "\n";
+//Routino::setProfilesFName("/home/easty/Загрузки/profiles.xml");
 Test();
+
+Routino::setProfilesFName("/home/easty/Загрузки/profiles.xml");
 
 //echo ROUTINO_ROUTE_LIST_TEXT_ALL."\n";
 //$r=new Routino("/home/easty/data/","khmao");

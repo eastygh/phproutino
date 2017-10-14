@@ -52,7 +52,10 @@ extern zend_module_entry routino_module_entry;
 zend_class_entry *php_routino_ce;
 
 ZEND_BEGIN_MODULE_GLOBALS(routino)
-  
+  char  *pfname;
+  int pfloaded;
+  char  *lngfname;
+  int lngloaded;
 ZEND_END_MODULE_GLOBALS(routino)
 
 /* Always refer to the globals in your function as ROUTINO_G(variable).

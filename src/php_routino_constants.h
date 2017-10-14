@@ -1,5 +1,5 @@
 
-// Wrapper for routino conats. All constants is long
+// Wrapper for routino constans. All constants is long
 #define REGISTER_ROUTINO_CONSTANT(__c) REGISTER_LONG_CONSTANT(#__c, __c, CONST_CS | CONST_PERSISTENT)
 
 REGISTER_ROUTINO_CONSTANT(ROUTINO_ERROR_NONE);
